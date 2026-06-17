@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Float, RoundedBox, Text } from '@react-three/drei'
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
+import { Text } from '@react-three/drei'
+import { EffectComposer, Bloom, Vignette, ChromaticAberration } from '@react-three/postprocessing'
 import * as THREE from 'three'
 
 type IconKind = 'orbit' | 'bolt' | 'wave' | 'hex' | 'pulse' | 'shield'
@@ -15,12 +15,12 @@ type CardData = {
 }
 
 const CARDS: CardData[] = [
-  { title: 'Neural Core', subtitle: 'AI Engine', color: '#7dd3fc', icon: 'orbit', detail: 'STATUS: ONLINE' },
-  { title: 'Quantum Grid', subtitle: 'Compute Mesh', color: '#a78bfa', icon: 'hex', detail: 'NODES: 2,048' },
-  { title: 'Holo Stream', subtitle: 'Live Render', color: '#f472b6', icon: 'wave', detail: 'FPS: 240' },
-  { title: 'Cipher Vault', subtitle: 'Secure Layer', color: '#34d399', icon: 'shield', detail: 'ENCRYPTED' },
-  { title: 'Pulse Net', subtitle: 'Edge Sync', color: '#fbbf24', icon: 'pulse', detail: 'LATENCY: 4ms' },
-  { title: 'Void Link', subtitle: 'Deep Channel', color: '#60a5fa', icon: 'bolt', detail: 'BANDWIDTH: 10G' },
+  { title: 'Neural Core', subtitle: 'AI Engine', color: '#ff2bd6', icon: 'orbit', detail: 'STATUS: ONLINE' },
+  { title: 'Quantum Grid', subtitle: 'Compute Mesh', color: '#00f6ff', icon: 'hex', detail: 'NODES: 2,048' },
+  { title: 'Holo Stream', subtitle: 'Live Render', color: '#ffb000', icon: 'wave', detail: 'FPS: 240' },
+  { title: 'Cipher Vault', subtitle: 'Secure Layer', color: '#7cff6b', icon: 'shield', detail: 'ENCRYPTED' },
+  { title: 'Pulse Net', subtitle: 'Edge Sync', color: '#ff2bd6', icon: 'pulse', detail: 'LATENCY: 4ms' },
+  { title: 'Void Link', subtitle: 'Deep Channel', color: '#00f6ff', icon: 'bolt', detail: 'BANDWIDTH: 10G' },
 ]
 
 function createIconTexture(color: string, icon: IconKind): THREE.CanvasTexture {
@@ -135,50 +135,56 @@ function createIconTexture(color: string, icon: IconKind): THREE.CanvasTexture {
   return texture
 }
 
-function Starfield() {
-  const pointsRef = useRef<THREE.Points>(null)
-  const positions = useMemo(() => {
-    const count = 600
-    const arr = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      const radius = 8 + Math.random() * 14
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(Math.random() * 2 - 1)
-      arr[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
-      arr[i * 3 + 1] = radius * Math.cos(phi)
-      arr[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta)
+function SynthGrid() {
+  const matRef = useRef<THREE.ShaderMaterial>(null)
+  const lines = useMemo(() => {
+    const group: { points: THREE.Vector3[] }[] = []
+    const size = 30
+    const step = 1
+    for (let x = -size; x <= size; x += step) {
+      group.push({ points: [new THREE.Vector3(x, 0, -size), new THREE.Vector3(x, 0, size)] })
     }
-    return arr
+    for (let z = -size; z <= size; z += step) {
+      group.push({ points: [new THREE.Vector3(-size, 0, z), new THREE.Vector3(size, 0, z)] })
+    }
+    return group
   }, [])
 
-  useFrame((_, delta) => {
-    if (pointsRef.current) pointsRef.current.rotation.y += delta * 0.01
+  useFrame((state) => {
+    if (matRef.current) matRef.current.opacity = 0.35 + Math.sin(state.clock.elapsedTime * 0.6) * 0.05
   })
 
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial size={0.035} color="#cbd5ff" transparent opacity={0.7} sizeAttenuation />
-    </points>
+    <group position={[0, -1.6, 0]}>
+      {lines.map((l, i) => (
+        <line key={i}>
+          <bufferGeometry
+            attach="geometry"
+            onUpdate={(geo) => geo.setFromPoints(l.points)}
+          />
+          <lineBasicMaterial ref={i === 0 ? matRef : undefined} attach="material" color="#ff2bd6" transparent opacity={0.35} />
+        </line>
+      ))}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+        <planeGeometry args={[60, 60]} />
+        <meshBasicMaterial color="#05010a" transparent opacity={0.55} />
+      </mesh>
+    </group>
   )
 }
 
-function ReflectiveFloor() {
+function SunHorizon() {
   return (
-    <mesh position={[0, -1.55, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[6, 64]} />
-      <meshPhysicalMaterial
-        color="#0b0a18"
-        roughness={0.25}
-        metalness={0.8}
-        clearcoat={1}
-        clearcoatRoughness={0.2}
-        transparent
-        opacity={0.6}
-      />
-    </mesh>
+    <group position={[0, -0.4, -9]}>
+      <mesh>
+        <circleGeometry args={[3.2, 64]} />
+        <meshBasicMaterial color="#ff7a18" transparent opacity={0.85} />
+      </mesh>
+      <mesh position={[0, 0, 0.01]}>
+        <ringGeometry args={[3.2, 3.4, 64]} />
+        <meshBasicMaterial color="#ffe27a" transparent opacity={0.6} />
+      </mesh>
+    </group>
   )
 }
 
@@ -188,7 +194,7 @@ function wrappedDelta(value: number, total: number) {
   return d
 }
 
-function GlassCard({
+function ChromeCard({
   data,
   index,
   total,
@@ -203,42 +209,50 @@ function GlassCard({
   active: boolean
   onSelect: (i: number) => void
 }) {
+  const pivotRef = useRef<THREE.Group>(null)
   const groupRef = useRef<THREE.Group>(null)
   const iconRef = useRef<THREE.Mesh>(null)
-  const cardMatRef = useRef<THREE.MeshPhysicalMaterial>(null)
-  const rimMatRef = useRef<THREE.MeshBasicMaterial>(null)
+  const cardMatRef = useRef<THREE.MeshStandardMaterial>(null)
+  const edgeMatRef = useRef<THREE.MeshBasicMaterial>(null)
   const [hovered, setHovered] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const pulseRef = useRef(0)
 
   const iconTexture = useMemo(() => createIconTexture(data.color, data.icon), [data.color, data.icon])
+  const radius = 3.4
+  const angleStep = (Math.PI * 2) / total
 
   useFrame((_, delta) => {
-    if (!groupRef.current) return
-    const rel = wrappedDelta(index - (continuousIndexRef.current ?? 0), total)
+    if (!pivotRef.current || !groupRef.current) return
+    const continuous = continuousIndexRef.current ?? 0
+    const angle = (index - continuous) * angleStep
+    const rel = wrappedDelta(index - continuous, total)
     const absRel = Math.abs(rel)
 
-    const spacing = 1.65
-    const x = rel * spacing
-    const z = -absRel * 1.3
-    const rotY = THREE.MathUtils.clamp(-rel * 0.6, -1.2, 1.2)
-    const scale = Math.max(0.32, 1 - absRel * 0.32) * (hovered && absRel < 0.5 ? 1.05 : 1)
-    const opacity = Math.max(0, 1 - absRel * 0.55)
+    const x = Math.sin(angle) * radius
+    const z = Math.cos(angle) * radius - radius
+    const facing = -angle
 
-    groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, x, 0.18)
-    groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, z, 0.18)
-    groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, rotY, 0.18)
+    pivotRef.current.position.x = THREE.MathUtils.lerp(pivotRef.current.position.x, x, 0.18)
+    pivotRef.current.position.z = THREE.MathUtils.lerp(pivotRef.current.position.z, z, 0.18)
+    pivotRef.current.rotation.y = THREE.MathUtils.lerp(pivotRef.current.rotation.y, facing, 0.18)
+
+    const scale = Math.max(0.4, 1 - absRel * 0.22) * (hovered && absRel < 0.5 ? 1.06 : 1)
     groupRef.current.scale.setScalar(THREE.MathUtils.lerp(groupRef.current.scale.x, scale, 0.18))
-    groupRef.current.visible = absRel < total / 2
 
+    const depthFade = Math.max(0.15, 1 - absRel * 0.32)
     if (cardMatRef.current) {
-      cardMatRef.current.opacity = THREE.MathUtils.lerp(cardMatRef.current.opacity, opacity, 0.15)
-      cardMatRef.current.emissiveIntensity = active ? 0.55 : 0.12
+      cardMatRef.current.opacity = THREE.MathUtils.lerp(cardMatRef.current.opacity, depthFade, 0.15)
+      cardMatRef.current.emissiveIntensity = THREE.MathUtils.lerp(
+        cardMatRef.current.emissiveIntensity,
+        active ? 0.9 : 0.25,
+        0.15,
+      )
     }
-    if (rimMatRef.current) {
-      rimMatRef.current.opacity = THREE.MathUtils.lerp(
-        rimMatRef.current.opacity,
-        active ? 0.55 : Math.max(0.05, 0.22 - absRel * 0.08),
+    if (edgeMatRef.current) {
+      edgeMatRef.current.opacity = THREE.MathUtils.lerp(
+        edgeMatRef.current.opacity,
+        active ? 1 : Math.max(0.2, 0.55 - absRel * 0.1),
         0.15,
       )
     }
@@ -247,7 +261,7 @@ function GlassCard({
     if (iconRef.current) {
       const bump = 1 + pulseRef.current * 0.5
       iconRef.current.scale.setScalar(bump)
-      iconRef.current.rotation.z += delta * (0.3 + pulseRef.current * 4)
+      iconRef.current.rotation.z += delta * (0.2 + pulseRef.current * 4)
     }
   })
 
@@ -258,77 +272,69 @@ function GlassCard({
   }
 
   return (
-    <group ref={groupRef}>
-      <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.3}>
-        <group
-          onClick={handlePress}
-          onPointerOver={() => setHovered(true)}
-          onPointerOut={() => setHovered(false)}
+    <group ref={pivotRef}>
+      <group
+        ref={groupRef}
+        onClick={handlePress}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
+        <mesh>
+          <boxGeometry args={[1.6, 2.2, 0.08]} />
+          <meshStandardMaterial
+            ref={cardMatRef}
+            color="#0c0c14"
+            metalness={0.95}
+            roughness={0.18}
+            emissive={data.color}
+            emissiveIntensity={0.25}
+            transparent
+            opacity={1}
+          />
+        </mesh>
+        <lineSegments position={[0, 0, 0.045]}>
+          <edgesGeometry attach="geometry" args={[new THREE.BoxGeometry(1.6, 2.2, 0.08)]} />
+          <lineBasicMaterial ref={edgeMatRef} color={data.color} transparent opacity={0.55} linewidth={2} />
+        </lineSegments>
+        <mesh ref={iconRef} position={[0, 0.55, 0.06]}>
+          <planeGeometry args={[0.9, 0.9]} />
+          <meshBasicMaterial map={iconTexture} transparent depthWrite={false} />
+        </mesh>
+        <Text
+          position={[0, -0.1, 0.06]}
+          fontSize={0.16}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+          outlineWidth={0.004}
+          outlineColor="#000000"
+          font={undefined}
         >
-          <RoundedBox args={[1.7, 2.3, 0.07]} radius={0.1} smoothness={6}>
-            <meshPhysicalMaterial
-              ref={cardMatRef}
-              color="#0a0f24"
-              transmission={0.35}
-              roughness={0.15}
-              thickness={0.8}
-              ior={1.4}
-              reflectivity={0.6}
-              clearcoat={1}
-              clearcoatRoughness={0.08}
-              iridescence={0.4}
-              iridescenceIOR={1.3}
-              sheen={0.6}
-              sheenColor={data.color}
-              sheenRoughness={0.35}
-              emissive={data.color}
-              emissiveIntensity={0.15}
-              transparent
-              opacity={1}
-            />
-          </RoundedBox>
-          <RoundedBox args={[1.75, 2.35, 0.02]} radius={0.11} smoothness={6} position={[0, 0, -0.02]}>
-            <meshBasicMaterial ref={rimMatRef} color={data.color} transparent opacity={0.2} />
-          </RoundedBox>
-          <mesh ref={iconRef} position={[0, 0.55, 0.05]}>
-            <planeGeometry args={[0.95, 0.95]} />
-            <meshBasicMaterial map={iconTexture} transparent depthWrite={false} />
-          </mesh>
+          {data.title}
+        </Text>
+        <Text
+          position={[0, -0.4, 0.06]}
+          fontSize={0.1}
+          color={data.color}
+          anchorX="center"
+          anchorY="middle"
+        >
+          {data.subtitle}
+        </Text>
+        {expanded && (
           <Text
-            position={[0, -0.1, 0.05]}
-            fontSize={0.17}
+            position={[0, -0.9, 0.06]}
+            fontSize={0.08}
             color="white"
             anchorX="center"
             anchorY="middle"
-            outlineWidth={0.004}
-            outlineColor="#000814"
+            outlineWidth={0.003}
+            outlineColor="#000000"
           >
-            {data.title}
+            {data.detail}
           </Text>
-          <Text
-            position={[0, -0.42, 0.05]}
-            fontSize={0.1}
-            color={data.color}
-            anchorX="center"
-            anchorY="middle"
-          >
-            {data.subtitle}
-          </Text>
-          {expanded && (
-            <Text
-              position={[0, -0.95, 0.05]}
-              fontSize={0.08}
-              color="white"
-              anchorX="center"
-              anchorY="middle"
-              outlineWidth={0.003}
-              outlineColor="#000814"
-            >
-              {data.detail}
-            </Text>
-          )}
-        </group>
-      </Float>
+        )}
+      </group>
     </group>
   )
 }
@@ -354,15 +360,14 @@ function Scene({
 
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[5, 5, 5]} intensity={45} color="#7dd3fc" />
-      <pointLight position={[-5, -3, -5]} intensity={35} color="#f472b6" />
-      <pointLight position={[0, 4, -4]} intensity={25} color="#a78bfa" />
-      <pointLight position={[0, -3, 4]} intensity={20} color="#ffffff" />
-      <Starfield />
-      <ReflectiveFloor />
+      <ambientLight intensity={0.4} />
+      <pointLight position={[0, 4, 4]} intensity={40} color="#ff2bd6" />
+      <pointLight position={[0, 2, -6]} intensity={35} color="#00f6ff" />
+      <pointLight position={[4, -1, 2]} intensity={20} color="#ffb000" />
+      <SunHorizon />
+      <SynthGrid />
       {CARDS.map((card, i) => (
-        <GlassCard
+        <ChromeCard
           key={card.title}
           data={card}
           index={i}
@@ -417,9 +422,9 @@ export default function Carousel() {
   return (
     <div className="carousel-wrap">
       <h1 className="carousel-title">
-        Next Gen <span className="accent-a">Tech</span> <span className="accent-b">Carousel</span>
+        <span className="accent-a">SYNTH</span>WAVE <span className="accent-b">RING</span>
       </h1>
-      <p className="carousel-subtitle">Floating glassmorphism cards · drag to explore</p>
+      <p className="carousel-subtitle">Chrome cards on a rotating ring · drag to spin</p>
       <div
         className="canvas-shell"
         onPointerDown={handlePointerDown}
@@ -428,9 +433,9 @@ export default function Carousel() {
         onPointerLeave={handlePointerUp}
         style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <Canvas camera={{ position: [0, 0.2, 8.5], fov: 36 }} dpr={[1, 2]}>
-          <color attach="background" args={['#05040c']} />
-          <fog attach="fog" args={['#05040c', 7, 16]} />
+        <Canvas camera={{ position: [0, 0.6, 4.4], fov: 42 }} dpr={[1, 2]}>
+          <color attach="background" args={['#0a0014']} />
+          <fog attach="fog" args={['#0a0014', 6, 16]} />
           <Scene
             activeIndex={activeIndex}
             setActiveIndex={goTo}
@@ -438,8 +443,9 @@ export default function Carousel() {
             dragging={dragging}
           />
           <EffectComposer>
-            <Bloom intensity={0.9} luminanceThreshold={0.15} luminanceSmoothing={0.4} mipmapBlur />
-            <Vignette eskil={false} offset={0.15} darkness={0.7} />
+            <Bloom intensity={1.1} luminanceThreshold={0.1} luminanceSmoothing={0.4} mipmapBlur />
+            <ChromaticAberration offset={[0.0008, 0.0008]} />
+            <Vignette eskil={false} offset={0.15} darkness={0.75} />
           </EffectComposer>
         </Canvas>
         <div className="glow glow-a" />
