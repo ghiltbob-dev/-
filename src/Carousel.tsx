@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Float, RoundedBox, Text } from '@react-three/drei'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 
 type IconKind = 'orbit' | 'bolt' | 'wave' | 'hex' | 'pulse' | 'shield'
@@ -134,6 +135,53 @@ function createIconTexture(color: string, icon: IconKind): THREE.CanvasTexture {
   return texture
 }
 
+function Starfield() {
+  const pointsRef = useRef<THREE.Points>(null)
+  const positions = useMemo(() => {
+    const count = 600
+    const arr = new Float32Array(count * 3)
+    for (let i = 0; i < count; i++) {
+      const radius = 8 + Math.random() * 14
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(Math.random() * 2 - 1)
+      arr[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
+      arr[i * 3 + 1] = radius * Math.cos(phi)
+      arr[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta)
+    }
+    return arr
+  }, [])
+
+  useFrame((_, delta) => {
+    if (pointsRef.current) pointsRef.current.rotation.y += delta * 0.01
+  })
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial size={0.035} color="#cbd5ff" transparent opacity={0.7} sizeAttenuation />
+    </points>
+  )
+}
+
+function ReflectiveFloor() {
+  return (
+    <mesh position={[0, -1.55, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[6, 64]} />
+      <meshPhysicalMaterial
+        color="#0b0a18"
+        roughness={0.25}
+        metalness={0.8}
+        clearcoat={1}
+        clearcoatRoughness={0.2}
+        transparent
+        opacity={0.6}
+      />
+    </mesh>
+  )
+}
+
 function GlassCard({
   data,
   angle,
@@ -198,18 +246,26 @@ function GlassCard({
           <RoundedBox args={[1.6, 2.2, 0.06]} radius={0.12} smoothness={6}>
             <meshPhysicalMaterial
               color={data.color}
-              transmission={0.85}
-              roughness={0.12}
-              thickness={0.6}
-              ior={1.3}
-              reflectivity={0.4}
+              transmission={0.9}
+              roughness={0.08}
+              thickness={0.7}
+              ior={1.4}
+              reflectivity={0.5}
               clearcoat={1}
-              clearcoatRoughness={0.1}
+              clearcoatRoughness={0.06}
+              iridescence={0.6}
+              iridescenceIOR={1.3}
+              sheen={1}
+              sheenColor={data.color}
+              sheenRoughness={0.3}
               emissive={data.color}
-              emissiveIntensity={active ? 0.35 : 0.12}
+              emissiveIntensity={active ? 0.45 : 0.15}
               transparent
-              opacity={0.55}
+              opacity={0.5}
             />
+          </RoundedBox>
+          <RoundedBox args={[1.64, 2.24, 0.02]} radius={0.13} smoothness={6} position={[0, 0, -0.02]}>
+            <meshBasicMaterial color={data.color} transparent opacity={active ? 0.35 : 0.15} />
           </RoundedBox>
           <mesh ref={iconRef} position={[0, -0.35, 0.05]}>
             <planeGeometry args={[0.9, 0.9]} />
@@ -290,6 +346,8 @@ function Scene({
       <pointLight position={[-5, -3, -5]} intensity={35} color="#f472b6" />
       <pointLight position={[0, 4, -4]} intensity={25} color="#a78bfa" />
       <pointLight position={[0, -3, 4]} intensity={20} color="#ffffff" />
+      <Starfield />
+      <ReflectiveFloor />
       {items.map(({ card, angle }, i) => (
         <GlassCard
           key={card.title}
@@ -361,13 +419,19 @@ export default function Carousel() {
         onPointerLeave={handlePointerUp}
         style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <Canvas camera={{ position: [0, 0.6, 6.5], fov: 45 }}>
+        <Canvas camera={{ position: [0, 0.6, 6.5], fov: 45 }} dpr={[1, 2]}>
+          <color attach="background" args={['#05040c']} />
+          <fog attach="fog" args={['#05040c', 8, 18]} />
           <Scene
             activeIndex={activeIndex}
             setActiveIndex={goTo}
             targetRotationRef={targetRotationRef}
             dragging={dragging}
           />
+          <EffectComposer>
+            <Bloom intensity={0.9} luminanceThreshold={0.15} luminanceSmoothing={0.4} mipmapBlur />
+            <Vignette eskil={false} offset={0.15} darkness={0.7} />
+          </EffectComposer>
         </Canvas>
         <div className="glow glow-a" />
         <div className="glow glow-b" />
