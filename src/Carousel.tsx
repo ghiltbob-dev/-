@@ -218,12 +218,12 @@ function GlassCard({
     const rel = wrappedDelta(index - (continuousIndexRef.current ?? 0), total)
     const absRel = Math.abs(rel)
 
-    const spacing = 1.85
+    const spacing = 1.65
     const x = rel * spacing
-    const z = -absRel * 1.1
-    const rotY = THREE.MathUtils.clamp(-rel * 0.55, -1.1, 1.1)
-    const scale = Math.max(0.5, 1 - absRel * 0.28) * (hovered && absRel < 0.5 ? 1.05 : 1)
-    const opacity = Math.max(0.18, 1 - absRel * 0.42)
+    const z = -absRel * 1.3
+    const rotY = THREE.MathUtils.clamp(-rel * 0.6, -1.2, 1.2)
+    const scale = Math.max(0.32, 1 - absRel * 0.32) * (hovered && absRel < 0.5 ? 1.05 : 1)
+    const opacity = Math.max(0, 1 - absRel * 0.55)
 
     groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, x, 0.18)
     groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, z, 0.18)
@@ -428,7 +428,7 @@ export default function Carousel() {
         onPointerLeave={handlePointerUp}
         style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <Canvas camera={{ position: [0, 0.25, 6.8], fov: 38 }} dpr={[1, 2]}>
+        <Canvas camera={{ position: [0, 0.2, 8.5], fov: 36 }} dpr={[1, 2]}>
           <color attach="background" args={['#05040c']} />
           <fog attach="fog" args={['#05040c', 7, 16]} />
           <Scene
