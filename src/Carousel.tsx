@@ -182,25 +182,31 @@ function ReflectiveFloor() {
   )
 }
 
+function wrappedDelta(value: number, total: number) {
+  let d = value
+  d -= total * Math.round(d / total)
+  return d
+}
+
 function GlassCard({
   data,
-  angle,
-  radius,
-  rotationRef,
   index,
+  total,
+  continuousIndexRef,
   active,
   onSelect,
 }: {
   data: CardData
-  angle: number
-  radius: number
-  rotationRef: React.RefObject<number>
   index: number
+  total: number
+  continuousIndexRef: React.RefObject<number>
   active: boolean
   onSelect: (i: number) => void
 }) {
   const groupRef = useRef<THREE.Group>(null)
   const iconRef = useRef<THREE.Mesh>(null)
+  const cardMatRef = useRef<THREE.MeshPhysicalMaterial>(null)
+  const rimMatRef = useRef<THREE.MeshBasicMaterial>(null)
   const [hovered, setHovered] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const pulseRef = useRef(0)
@@ -209,23 +215,39 @@ function GlassCard({
 
   useFrame((_, delta) => {
     if (!groupRef.current) return
-    const a = angle + (rotationRef.current ?? 0)
-    const x = Math.sin(a) * radius
-    const z = Math.cos(a) * radius
-    groupRef.current.position.x = x
-    groupRef.current.position.z = z
-    groupRef.current.lookAt(0, groupRef.current.position.y, 0)
-    const targetScale = active ? 1.25 : hovered ? 1.1 : 1
-    groupRef.current.scale.lerp(
-      new THREE.Vector3(targetScale, targetScale, targetScale),
-      0.1,
-    )
+    const rel = wrappedDelta(index - (continuousIndexRef.current ?? 0), total)
+    const absRel = Math.abs(rel)
+
+    const spacing = 1.85
+    const x = rel * spacing
+    const z = -absRel * 1.1
+    const rotY = THREE.MathUtils.clamp(-rel * 0.55, -1.1, 1.1)
+    const scale = Math.max(0.5, 1 - absRel * 0.28) * (hovered && absRel < 0.5 ? 1.05 : 1)
+    const opacity = Math.max(0.18, 1 - absRel * 0.42)
+
+    groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, x, 0.18)
+    groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, z, 0.18)
+    groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, rotY, 0.18)
+    groupRef.current.scale.setScalar(THREE.MathUtils.lerp(groupRef.current.scale.x, scale, 0.18))
+    groupRef.current.visible = absRel < total / 2
+
+    if (cardMatRef.current) {
+      cardMatRef.current.opacity = THREE.MathUtils.lerp(cardMatRef.current.opacity, opacity, 0.15)
+      cardMatRef.current.emissiveIntensity = active ? 0.55 : 0.12
+    }
+    if (rimMatRef.current) {
+      rimMatRef.current.opacity = THREE.MathUtils.lerp(
+        rimMatRef.current.opacity,
+        active ? 0.55 : Math.max(0.05, 0.22 - absRel * 0.08),
+        0.15,
+      )
+    }
 
     pulseRef.current = Math.max(0, pulseRef.current - delta * 2)
     if (iconRef.current) {
       const bump = 1 + pulseRef.current * 0.5
       iconRef.current.scale.setScalar(bump)
-      iconRef.current.rotation.z += delta * (0.4 + pulseRef.current * 4)
+      iconRef.current.rotation.z += delta * (0.3 + pulseRef.current * 4)
     }
   })
 
@@ -237,43 +259,44 @@ function GlassCard({
 
   return (
     <group ref={groupRef}>
-      <Float speed={1.5} rotationIntensity={0.15} floatIntensity={0.6}>
+      <Float speed={1.2} rotationIntensity={0.06} floatIntensity={0.3}>
         <group
           onClick={handlePress}
           onPointerOver={() => setHovered(true)}
           onPointerOut={() => setHovered(false)}
         >
-          <RoundedBox args={[1.6, 2.2, 0.06]} radius={0.12} smoothness={6}>
+          <RoundedBox args={[1.7, 2.3, 0.07]} radius={0.1} smoothness={6}>
             <meshPhysicalMaterial
-              color={data.color}
-              transmission={0.9}
-              roughness={0.08}
-              thickness={0.7}
+              ref={cardMatRef}
+              color="#0a0f24"
+              transmission={0.35}
+              roughness={0.15}
+              thickness={0.8}
               ior={1.4}
-              reflectivity={0.5}
+              reflectivity={0.6}
               clearcoat={1}
-              clearcoatRoughness={0.06}
-              iridescence={0.6}
+              clearcoatRoughness={0.08}
+              iridescence={0.4}
               iridescenceIOR={1.3}
-              sheen={1}
+              sheen={0.6}
               sheenColor={data.color}
-              sheenRoughness={0.3}
+              sheenRoughness={0.35}
               emissive={data.color}
-              emissiveIntensity={active ? 0.45 : 0.15}
+              emissiveIntensity={0.15}
               transparent
-              opacity={0.5}
+              opacity={1}
             />
           </RoundedBox>
-          <RoundedBox args={[1.64, 2.24, 0.02]} radius={0.13} smoothness={6} position={[0, 0, -0.02]}>
-            <meshBasicMaterial color={data.color} transparent opacity={active ? 0.35 : 0.15} />
+          <RoundedBox args={[1.75, 2.35, 0.02]} radius={0.11} smoothness={6} position={[0, 0, -0.02]}>
+            <meshBasicMaterial ref={rimMatRef} color={data.color} transparent opacity={0.2} />
           </RoundedBox>
-          <mesh ref={iconRef} position={[0, -0.35, 0.05]}>
-            <planeGeometry args={[0.9, 0.9]} />
+          <mesh ref={iconRef} position={[0, 0.55, 0.05]}>
+            <planeGeometry args={[0.95, 0.95]} />
             <meshBasicMaterial map={iconTexture} transparent depthWrite={false} />
           </mesh>
           <Text
-            position={[0, 0.55, 0.05]}
-            fontSize={0.16}
+            position={[0, -0.1, 0.05]}
+            fontSize={0.17}
             color="white"
             anchorX="center"
             anchorY="middle"
@@ -283,8 +306,8 @@ function GlassCard({
             {data.title}
           </Text>
           <Text
-            position={[0, 0.25, 0.05]}
-            fontSize={0.09}
+            position={[0, -0.42, 0.05]}
+            fontSize={0.1}
             color={data.color}
             anchorX="center"
             anchorY="middle"
@@ -293,7 +316,7 @@ function GlassCard({
           </Text>
           {expanded && (
             <Text
-              position={[0, -0.92, 0.05]}
+              position={[0, -0.95, 0.05]}
               fontSize={0.08}
               color="white"
               anchorX="center"
@@ -313,31 +336,21 @@ function GlassCard({
 function Scene({
   activeIndex,
   setActiveIndex,
-  targetRotationRef,
+  targetIndexRef,
   dragging,
 }: {
   activeIndex: number
   setActiveIndex: (i: number) => void
-  targetRotationRef: React.RefObject<number>
+  targetIndexRef: React.RefObject<number>
   dragging: boolean
 }) {
-  const rotationRef = useRef(0)
-  const radius = 3.4
+  const continuousIndexRef = useRef(0)
 
   useFrame(() => {
-    const target = targetRotationRef.current ?? 0
-    const speed = dragging ? 0.4 : 0.08
-    rotationRef.current += (target - rotationRef.current) * speed
+    const target = targetIndexRef.current ?? 0
+    const speed = dragging ? 0.45 : 0.12
+    continuousIndexRef.current += wrappedDelta(target - continuousIndexRef.current, CARDS.length) * speed
   })
-
-  const items = useMemo(
-    () =>
-      CARDS.map((card, i) => ({
-        card,
-        angle: (i / CARDS.length) * Math.PI * 2,
-      })),
-    [],
-  )
 
   return (
     <>
@@ -348,14 +361,13 @@ function Scene({
       <pointLight position={[0, -3, 4]} intensity={20} color="#ffffff" />
       <Starfield />
       <ReflectiveFloor />
-      {items.map(({ card, angle }, i) => (
+      {CARDS.map((card, i) => (
         <GlassCard
           key={card.title}
           data={card}
-          angle={angle}
-          radius={radius}
-          rotationRef={rotationRef}
           index={i}
+          total={CARDS.length}
+          continuousIndexRef={continuousIndexRef}
           active={i === activeIndex}
           onSelect={setActiveIndex}
         />
@@ -367,36 +379,33 @@ function Scene({
 export default function Carousel() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [dragging, setDragging] = useState(false)
-  const targetRotationRef = useRef(0)
+  const targetIndexRef = useRef(0)
   const dragStartXRef = useRef(0)
-  const dragStartRotationRef = useRef(0)
-
-  const step = (Math.PI * 2) / CARDS.length
+  const dragStartIndexRef = useRef(0)
 
   const goTo = (i: number) => {
-    const wrapped = (i + CARDS.length) % CARDS.length
+    const wrapped = ((i % CARDS.length) + CARDS.length) % CARDS.length
     setActiveIndex(wrapped)
-    targetRotationRef.current = -wrapped * step
+    targetIndexRef.current = wrapped
   }
 
   const snapToNearest = () => {
-    const raw = -targetRotationRef.current / step
-    const wrapped = ((Math.round(raw) % CARDS.length) + CARDS.length) % CARDS.length
+    const wrapped = ((Math.round(targetIndexRef.current) % CARDS.length) + CARDS.length) % CARDS.length
     setActiveIndex(wrapped)
-    targetRotationRef.current = -wrapped * step
+    targetIndexRef.current = wrapped
   }
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setDragging(true)
     dragStartXRef.current = e.clientX
-    dragStartRotationRef.current = targetRotationRef.current
+    dragStartIndexRef.current = targetIndexRef.current
     ;(e.target as Element).setPointerCapture?.(e.pointerId)
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragging) return
     const dx = e.clientX - dragStartXRef.current
-    targetRotationRef.current = dragStartRotationRef.current + dx * 0.01
+    targetIndexRef.current = dragStartIndexRef.current - dx * 0.006
   }
 
   const handlePointerUp = () => {
@@ -407,10 +416,10 @@ export default function Carousel() {
 
   return (
     <div className="carousel-wrap">
-      <h1 className="carousel-title">3D Tech Carousel</h1>
-      <p className="carousel-subtitle">
-        Floating glassmorphism cards · тащи мышью, чтобы вращать
-      </p>
+      <h1 className="carousel-title">
+        Next Gen <span className="accent-a">Tech</span> <span className="accent-b">Carousel</span>
+      </h1>
+      <p className="carousel-subtitle">Floating glassmorphism cards · drag to explore</p>
       <div
         className="canvas-shell"
         onPointerDown={handlePointerDown}
@@ -419,13 +428,13 @@ export default function Carousel() {
         onPointerLeave={handlePointerUp}
         style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
-        <Canvas camera={{ position: [0, 0.6, 6.5], fov: 45 }} dpr={[1, 2]}>
+        <Canvas camera={{ position: [0, 0.25, 6.8], fov: 38 }} dpr={[1, 2]}>
           <color attach="background" args={['#05040c']} />
-          <fog attach="fog" args={['#05040c', 8, 18]} />
+          <fog attach="fog" args={['#05040c', 7, 16]} />
           <Scene
             activeIndex={activeIndex}
             setActiveIndex={goTo}
-            targetRotationRef={targetRotationRef}
+            targetIndexRef={targetIndexRef}
             dragging={dragging}
           />
           <EffectComposer>
