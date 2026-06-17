@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, Float, RoundedBox, Text } from '@react-three/drei'
+import { Float, RoundedBox, Text } from '@react-three/drei'
 import * as THREE from 'three'
 
 type IconKind = 'orbit' | 'bolt' | 'wave' | 'hex' | 'pulse' | 'shield'
@@ -257,17 +257,21 @@ function GlassCard({
 function Scene({
   activeIndex,
   setActiveIndex,
-  targetRotation,
+  targetRotationRef,
+  dragging,
 }: {
   activeIndex: number
   setActiveIndex: (i: number) => void
-  targetRotation: number
+  targetRotationRef: React.RefObject<number>
+  dragging: boolean
 }) {
   const rotationRef = useRef(0)
   const radius = 3.4
 
   useFrame(() => {
-    rotationRef.current += (targetRotation - rotationRef.current) * 0.08
+    const target = targetRotationRef.current ?? 0
+    const speed = dragging ? 0.4 : 0.08
+    rotationRef.current += (target - rotationRef.current) * speed
   })
 
   const items = useMemo(
@@ -281,10 +285,11 @@ function Scene({
 
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <pointLight position={[5, 5, 5]} intensity={40} color="#7dd3fc" />
-      <pointLight position={[-5, -3, -5]} intensity={30} color="#f472b6" />
-      <Environment preset="city" />
+      <ambientLight intensity={0.5} />
+      <pointLight position={[5, 5, 5]} intensity={45} color="#7dd3fc" />
+      <pointLight position={[-5, -3, -5]} intensity={35} color="#f472b6" />
+      <pointLight position={[0, 4, -4]} intensity={25} color="#a78bfa" />
+      <pointLight position={[0, -3, 4]} intensity={20} color="#ffffff" />
       {items.map(({ card, angle }, i) => (
         <GlassCard
           key={card.title}
@@ -303,26 +308,65 @@ function Scene({
 
 export default function Carousel() {
   const [activeIndex, setActiveIndex] = useState(0)
-  const [rotation, setRotation] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const targetRotationRef = useRef(0)
+  const dragStartXRef = useRef(0)
+  const dragStartRotationRef = useRef(0)
 
   const step = (Math.PI * 2) / CARDS.length
 
   const goTo = (i: number) => {
     const wrapped = (i + CARDS.length) % CARDS.length
     setActiveIndex(wrapped)
-    setRotation(-wrapped * step)
+    targetRotationRef.current = -wrapped * step
+  }
+
+  const snapToNearest = () => {
+    const raw = -targetRotationRef.current / step
+    const wrapped = ((Math.round(raw) % CARDS.length) + CARDS.length) % CARDS.length
+    setActiveIndex(wrapped)
+    targetRotationRef.current = -wrapped * step
+  }
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setDragging(true)
+    dragStartXRef.current = e.clientX
+    dragStartRotationRef.current = targetRotationRef.current
+    ;(e.target as Element).setPointerCapture?.(e.pointerId)
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragging) return
+    const dx = e.clientX - dragStartXRef.current
+    targetRotationRef.current = dragStartRotationRef.current + dx * 0.01
+  }
+
+  const handlePointerUp = () => {
+    if (!dragging) return
+    setDragging(false)
+    snapToNearest()
   }
 
   return (
     <div className="carousel-wrap">
       <h1 className="carousel-title">3D Tech Carousel</h1>
-      <p className="carousel-subtitle">Floating glassmorphism cards · futuristic UI</p>
-      <div className="canvas-shell">
+      <p className="carousel-subtitle">
+        Floating glassmorphism cards · тащи мышью, чтобы вращать
+      </p>
+      <div
+        className="canvas-shell"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+      >
         <Canvas camera={{ position: [0, 0.6, 6.5], fov: 45 }}>
           <Scene
             activeIndex={activeIndex}
             setActiveIndex={goTo}
-            targetRotation={rotation}
+            targetRotationRef={targetRotationRef}
+            dragging={dragging}
           />
         </Canvas>
         <div className="glow glow-a" />
