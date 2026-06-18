@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Nexus AI — Capability Showcase</title>
+<style>
+  :root{
+    --bg-0:#05060d;
+    --bg-1:#0a0d1c;
+    --bg-2:#10142a;
+    --glass:rgba(255,255,255,0.06);
+    --glass-strong:rgba(255,255,255,0.10);
+    --border:rgba(255,255,255,0.14);
+    --border-strong:rgba(255,255,255,0.28);
+    --text-0:#f3f5fb;
+    --text-1:#aab0c8;
+    --text-2:#6c7393;
+    --cyan:#5ef0ff;
+    --violet:#a98bff;
+    --magenta:#ff7adf;
+    --amber:#ffc36b;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --ease-soft:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 8%, rgba(94,240,255,0.10), transparent 38%),
+      radial-gradient(circle at 88% 12%, rgba(169,139,255,0.12), transparent 42%),
+      radial-gradient(circle at 70% 92%, rgba(255,122,223,0.08), transparent 45%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
+    color:var(--text-0);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif;
+    overflow-x:hidden;
+    position:relative;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* ambient background layers */
+  .bg-grid{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(circle at 50% 30%, rgba(0,0,0,0.9), transparent 75%);
+  }
+  .bg-orb{
+    position:fixed;border-radius:50%;filter:blur(70px);opacity:0.45;z-index:0;pointer-events:none;
+    animation:drift 22s ease-in-out infinite;
+  }
+  .bg-orb.o1{width:480px;height:480px;background:var(--cyan);top:-160px;left:-120px;animation-delay:0s;}
+  .bg-orb.o2{width:420px;height:420px;background:var(--violet);bottom:-140px;right:-100px;animation-delay:-7s;}
+  .bg-orb.o3{width:320px;height:320px;background:var(--magenta);top:38%;left:62%;animation-delay:-14s;}
+  @keyframes drift{
+    0%,100%{transform:translate(0,0) scale(1);}
+    33%{transform:translate(40px,-30px) scale(1.08);}
+    66%{transform:translate(-30px,25px) scale(0.94);}
+  }
+  .bg-particles{position:fixed;inset:0;z-index:0;pointer-events:none;}
+  .particle{
+    position:absolute;width:3px;height:3px;border-radius:50%;
+    background:rgba(255,255,255,0.5);box-shadow:0 0 6px 1px rgba(255,255,255,0.4);
+    animation:float-up linear infinite;
+  }
+  @keyframes float-up{
+    0%{transform:translateY(0) translateX(0);opacity:0;}
+    10%{opacity:0.8;}
+    90%{opacity:0.5;}
+    100%{transform:translateY(-100vh) translateX(20px);opacity:0;}
+  }
+
+  header.top{
+    position:relative;z-index:2;max-width:1240px;margin:0 auto;
+    padding:48px 32px 8px;text-align:center;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:7px 16px;border-radius:999px;
+    background:var(--glass);border:1px solid var(--border);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-1);
+    margin-bottom:22px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+  header.top h1{
+    font-size:clamp(28px,5vw,48px);line-height:1.12;margin:0 0 14px;font-weight:700;letter-spacing:-0.01em;
+    background:linear-gradient(135deg,#fff 20%,var(--cyan) 55%,var(--violet) 85%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  header.top p{
+    max-width:560px;margin:0 auto;color:var(--text-1);font-size:16px;line-height:1.65;
+  }
+
+  .stage-wrap{
+    position:relative;z-index:2;max-width:1320px;margin:36px auto 0;padding:0 18px;
+  }
+  .stage{
+    position:relative;
+    height:560px;
+    display:flex;align-items:center;justify-content:center;
+    perspective:1700px;
+    touch-action:pan-y;
+  }
+  .track{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  .card{
+    position:absolute;
+    width:300px;height:430px;
+    border-radius:26px;
+    transform-style:preserve-3d;
+    transition:transform 0.62s var(--ease), opacity 0.62s var(--ease), filter 0.62s var(--ease);
+    will-change:transform,opacity;
+    cursor:pointer;
+  }
+  .card-inner{
+    position:relative;width:100%;height:100%;border-radius:26px;
+    background:linear-gradient(160deg, var(--glass-strong), rgba(255,255,255,0.02));
+    border:1px solid var(--border);
+    backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);
+    box-shadow:
+      0 30px 60px -28px rgba(0,0,0,0.65),
+      inset 0 1px 0 rgba(255,255,255,0.18),
+      inset 0 0 40px rgba(255,255,255,0.02);
+    overflow:hidden;
+    padding:22px;
+    display:flex;flex-direction:column;
+    transition:border-color 0.4s var(--ease), box-shadow 0.4s var(--ease);
+  }
+  .card[data-pos="0"]{transform:translateX(0) translateZ(0) rotateY(0deg) scale(1);opacity:1;z-index:5;filter:brightness(1);}
+  .card[data-pos="-1"]{transform:translateX(-272px) translateZ(-160px) rotateY(28deg) scale(0.82);opacity:0.55;z-index:4;filter:brightness(0.6);}
+  .card[data-pos="1"]{transform:translateX(272px) translateZ(-160px) rotateY(-28deg) scale(0.82);opacity:0.55;z-index:4;filter:brightness(0.6);}
+  .card[data-pos="-2"]{transform:translateX(-470px) translateZ(-320px) rotateY(36deg) scale(0.66);opacity:0.22;z-index:3;filter:brightness(0.4);}
+  .card[data-pos="2"]{transform:translateX(470px) translateZ(-320px) rotateY(-36deg) scale(0.66);opacity:0.22;z-index:3;filter:brightness(0.4);}
+  .card[data-pos="hidden"]{transform:translateX(0) translateZ(-500px) scale(0.4);opacity:0;z-index:1;pointer-events:none;}
+
+  .card[data-pos="0"] .card-inner:hover,
+  .card[data-pos="0"].tilt .card-inner{
+    border-color:var(--border-strong);
+    box-shadow:
+      0 40px 80px -30px rgba(0,0,0,0.7),
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 0 60px -10px var(--glow-color, rgba(94,240,255,0.35)),
+      inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+
+  .card-sheen{
+    position:absolute;inset:0;border-radius:26px;pointer-events:none;mix-blend-mode:screen;opacity:0;
+    background:radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,0.35), transparent 55%);
+    transition:opacity 0.3s var(--ease);
+  }
+  .card[data-pos="0"]:hover .card-sheen{opacity:1;}
+
+  .card-glow-edge{
+    position:absolute;inset:-1px;border-radius:27px;opacity:0;pointer-events:none;
+    background:linear-gradient(135deg, var(--glow-a), transparent 40%, var(--glow-b));
+    filter:blur(1px);transition:opacity 0.4s var(--ease);
+  }
+  .card[data-pos="0"]:hover .card-glow-edge{opacity:0.55;}
+
+  .card-grid-pattern{
+    position:absolute;inset:0;opacity:0.5;pointer-events:none;
+    background-image:linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size:18px 18px;
+    mask-image:linear-gradient(180deg, rgba(0,0,0,0.9), transparent 70%);
+  }
+
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;position:relative;z-index:2;}
+  .card-num{
+    font-size:12px;font-weight:700;letter-spacing:0.08em;color:var(--text-2);
+    font-variant-numeric:tabular-nums;
+  }
+  .card-cat{
+    font-size:10.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+    padding:5px 10px;border-radius:999px;
+    background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--text-1);
+  }
+
+  .card-art{
+    position:relative;z-index:2;
+    height:148px;margin:16px 0 14px;border-radius:18px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.08);
+    overflow:hidden;
+  }
+  .card-art svg{width:100%;height:100%;}
+  .card-art .icon-float{transition:transform 0.5s var(--ease-soft);}
+  .card[data-pos="0"]:hover .icon-float{transform:translateY(-6px) scale(1.04);}
+
+  .card-body{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;}
+  .card-title{font-size:19px;font-weight:700;margin:0 0 4px;letter-spacing:-0.01em;}
+  .card-subtitle{font-size:12.5px;font-weight:600;color:var(--glow-a);margin:0 0 10px;text-transform:uppercase;letter-spacing:0.04em;}
+  .card-desc{font-size:13px;line-height:1.55;color:var(--text-1);margin:0 0 14px;flex:1;}
+
+  .card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .card-tags span{
+    font-size:10.5px;font-weight:600;color:var(--text-1);
+    padding:4px 9px;border-radius:8px;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  }
+
+  .card-footer{
+    position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;
+    padding-top:12px;border-top:1px solid rgba(255,255,255,0.08);
+  }
+  .card-metric{display:flex;flex-direction:column;}
+  .card-metric .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .card-metric .l{font-size:10px;color:var(--text-2);letter-spacing:0.04em;text-transform:uppercase;}
+  .card-arrow{
+    width:34px;height:34px;border-radius:50%;
+    background:rgba(255,255,255,0.06);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    transition:transform 0.35s var(--ease-soft), background 0.35s var(--ease-soft);
+  }
+  .card[data-pos="0"]:hover .card-arrow{background:rgba(255,255,255,0.14);transform:translateX(3px);}
+  .card-arrow svg{width:14px;height:14px;}
+
+  /* Controls */
+  .controls{
+    position:relative;z-index:2;display:flex;align-items:center;justify-content:center;
+    gap:22px;margin:34px auto 0;max-width:600px;
+  }
+  .nav-btn{
+    width:50px;height:50px;border-radius:50%;flex-shrink:0;
+    background:var(--glass);border:1px solid var(--border);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:transform 0.25s var(--ease-soft), background 0.25s var(--ease-soft), border-color 0.25s;
+    color:var(--text-0);
+  }
+  .nav-btn:hover{background:rgba(255,255,255,0.14);border-color:var(--border-strong);transform:translateY(-2px) scale(1.05);}
+  .nav-btn:active{transform:scale(0.94);}
+  .nav-btn svg{width:18px;height:18px;}
+  .nav-btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;}
+
+  .dots{display:flex;align-items:center;gap:9px;}
+  .dot{
+    width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.18);
+    border:none;cursor:pointer;padding:0;transition:all 0.35s var(--ease-soft);position:relative;
+  }
+  .dot::after{
+    content:"";position:absolute;inset:-8px;border-radius:50%;
+  }
+  .dot.active{width:26px;border-radius:5px;background:linear-gradient(90deg,var(--cyan),var(--violet));}
+  .dot:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;}
+
+  .progress-wrap{
+    width:160px;height:3px;border-radius:99px;background:rgba(255,255,255,0.08);overflow:hidden;
+  }
+  .progress-bar{
+    height:100%;width:0%;border-radius:99px;
+    background:linear-gradient(90deg,var(--cyan),var(--violet),var(--magenta));
+  }
+  .progress-bar.animate{transition:width 5s linear;}
+
+  footer.bottom{
+    position:relative;z-index:2;text-align:center;padding:54px 24px 40px;color:var(--text-2);font-size:12.5px;
+  }
+  footer.bottom .badges{display:flex;justify-content:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+  footer.bottom .badge{
+    padding:6px 14px;border-radius:999px;background:var(--glass);border:1px solid var(--border);
+    font-size:11px;color:var(--text-1);letter-spacing:0.04em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .bg-orb,.particle,.eyebrow .dot{animation:none !important;}
+    .card,.card-inner,.card-sheen,.card-glow-edge,.icon-float,.nav-btn,.dot{transition:none !important;}
+  }
+
+  @media (max-width:900px){
+    .stage{height:520px;}
+    .card{width:260px;height:400px;}
+    .card[data-pos="-1"]{transform:translateX(-190px) translateZ(-160px) rotateY(26deg) scale(0.78);}
+    .card[data-pos="1"]{transform:translateX(190px) translateZ(-160px) rotateY(-26deg) scale(0.78);}
+    .card[data-pos="-2"], .card[data-pos="2"]{opacity:0;pointer-events:none;}
+  }
+  @media (max-width:560px){
+    header.top{padding:36px 20px 4px;}
+    .stage{height:480px;}
+    .card{width:240px;height:380px;}
+    .card[data-pos="-1"]{transform:translateX(-150px) translateZ(-160px) rotateY(22deg) scale(0.74);}
+    .card[data-pos="1"]{transform:translateX(150px) translateZ(-160px) rotateY(-22deg) scale(0.74);}
+    .controls{gap:14px;}
+    .progress-wrap{width:100px;}
+    .nav-btn{width:44px;height:44px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-orb o1" aria-hidden="true"></div>
+<div class="bg-orb o2" aria-hidden="true"></div>
+<div class="bg-orb o3" aria-hidden="true"></div>
+<div class="bg-particles" id="particles" aria-hidden="true"></div>
+
+<header class="top">
+  <span class="eyebrow"><span class="dot"></span> Nexus Intelligence Platform</span>
+  <h1>Eight Pillars of the Nexus AI Engine</h1>
+  <p>A premium showcase of the core capabilities powering the next generation of autonomous intelligence — explore each module below.</p>
+</header>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage" tabindex="0" role="region" aria-label="Capability carousel" aria-roledescription="carousel">
+    <div class="track" id="track"></div>
+  </div>
+
+  <div class="controls">
+    <button class="nav-btn" id="prevBtn" aria-label="Previous card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="dots" id="dots" role="tablist" aria-label="Select card"></div>
+    <button class="nav-btn" id="nextBtn" aria-label="Next card">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+  </div>
+  <div style="display:flex;justify-content:center;margin-top:16px;">
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+  </div>
+</div>
+
+<footer class="bottom">
+  <div class="badges">
+    <span class="badge">Real-time inference</span>
+    <span class="badge">Enterprise-grade security</span>
+    <span class="badge">99.99% uptime SLA</span>
+    <span class="badge">Global edge network</span>
+  </div>
+  &copy; 2026 Nexus AI — All systems operational
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var CARDS = [
+    {
+      num:"01", cat:"Cognition", title:"Neural Core", subtitle:"Reasoning Engine",
+      desc:"A multi-layer transformer core capable of contextual reasoning across millions of tokens in real time.",
+      tags:["Multi-modal","Low latency","Adaptive"], metricV:"99.2%", metricL:"Accuracy",
+      colorA:"#5ef0ff", colorB:"#3b82f6",
+      icon:'<defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5ef0ff"/><stop offset="100%" stop-color="#3b82f6"/></linearGradient></defs><g class="icon-float"><circle cx="60" cy="60" r="34" fill="none" stroke="url(#g1)" stroke-width="2" opacity="0.5"/><circle cx="60" cy="60" r="22" fill="none" stroke="url(#g1)" stroke-width="2"/><circle cx="60" cy="60" r="6" fill="url(#g1)"/><circle cx="60" cy="26" r="3" fill="#5ef0ff"/><circle cx="94" cy="60" r="3" fill="#5ef0ff"/><circle cx="60" cy="94" r="3" fill="#5ef0ff"/><circle cx="26" cy="60" r="3" fill="#5ef0ff"/><path d="M60 26V40M94 60H80M60 94V80M26 60H40" stroke="url(#g1)" stroke-width="1.5" opacity="0.7"/></g>'
+    },
+    {
+      num:"02", cat:"Sync", title:"Quantum Sync", subtitle:"Distributed State",
+      desc:"Synchronizes state across distributed nodes with sub-millisecond consistency guarantees worldwide.",
+      tags:["Edge-ready","Lock-free","Resilient"], metricV:"0.8ms", metricL:"Sync delay",
+      colorA:"#a98bff", colorB:"#7c3aed",
+      icon:'<defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a98bff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><g class="icon-float"><rect x="30" y="30" width="60" height="60" rx="14" fill="none" stroke="url(#g2)" stroke-width="2" transform="rotate(45 60 60)"/><rect x="42" y="42" width="36" height="36" rx="8" fill="url(#g2)" opacity="0.25"/><circle cx="60" cy="60" r="8" fill="url(#g2)"/></g>'
+    },
+    {
+      num:"03", cat:"Perception", title:"Vision Engine", subtitle:"Spatial Intelligence",
+      desc:"Processes visual streams with depth-aware perception, enabling precise object and scene understanding.",
+      tags:["3D-aware","Real-time","On-device"], metricV:"240fps", metricL:"Throughput",
+      colorA:"#ff7adf", colorB:"#ec4899",
+      icon:'<defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff7adf"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs><g class="icon-float"><path d="M20 60c10-20 30-30 40-30s30 10 40 30c-10 20-30 30-40 30s-30-10-40-30z" fill="none" stroke="url(#g3)" stroke-width="2"/><circle cx="60" cy="60" r="14" fill="url(#g3)" opacity="0.3" stroke="url(#g3)" stroke-width="2"/><circle cx="60" cy="60" r="5" fill="url(#g3)"/></g>'
+    },
+    {
+      num:"04", cat:"Data", title:"Data Forge", subtitle:"Pipeline Automation",
+      desc:"Auto-curates and transforms raw data streams into training-ready datasets with zero manual cleanup.",
+      tags:["Auto-label","Streaming","Scalable"], metricV:"12TB/h", metricL:"Throughput",
+      colorA:"#ffc36b", colorB:"#f59e0b",
+      icon:'<defs><linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffc36b"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient></defs><g class="icon-float"><path d="M30 45l30-15 30 15-30 15z" fill="url(#g4)" opacity="0.5"/><path d="M30 45v20l30 15 30-15V45" fill="none" stroke="url(#g4)" stroke-width="2"/><path d="M30 45l30 15 30-15" fill="none" stroke="url(#g4)" stroke-width="2"/></g>'
+    },
+    {
+      num:"05", cat:"Infrastructure", title:"Cloud Nexus", subtitle:"Elastic Compute",
+      desc:"Auto-scales compute clusters across regions, balancing cost and performance without manual ops.",
+      tags:["Multi-region","Auto-scale","Cost-aware"], metricV:"1.4M", metricL:"Requests/sec",
+      colorA:"#5ef0ff", colorB:"#06b6d4",
+      icon:'<defs><linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5ef0ff"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient></defs><g class="icon-float"><path d="M40 75a16 16 0 010-32 22 22 0 0142-6 18 18 0 01-2 38H40z" fill="none" stroke="url(#g5)" stroke-width="2"/><circle cx="60" cy="58" r="6" fill="url(#g5)" opacity="0.6"/></g>'
+    },
+    {
+      num:"06", cat:"Security", title:"Secure Vault", subtitle:"Zero-trust Layer",
+      desc:"End-to-end encrypted model weights and data, governed by zero-trust access policies at every layer.",
+      tags:["Encrypted","Auditable","Compliant"], metricV:"256-bit", metricL:"Encryption",
+      colorA:"#a98bff", colorB:"#6366f1",
+      icon:'<defs><linearGradient id="g6" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a98bff"/><stop offset="100%" stop-color="#6366f1"/></linearGradient></defs><g class="icon-float"><path d="M60 24l30 12v22c0 20-14 32-30 38-16-6-30-18-30-38V36z" fill="none" stroke="url(#g6)" stroke-width="2"/><path d="M48 60l9 9 16-18" fill="none" stroke="url(#g6)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></g>'
+    },
+    {
+      num:"07", cat:"Automation", title:"Auto Pilot", subtitle:"Agentic Workflows",
+      desc:"Plans and executes multi-step tasks autonomously, coordinating tools and agents toward a goal.",
+      tags:["Multi-agent","Tool-use","Self-healing"], metricV:"42x", metricL:"Faster ops",
+      colorA:"#ff7adf", colorB:"#f43f5e",
+      icon:'<defs><linearGradient id="g7" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff7adf"/><stop offset="100%" stop-color="#f43f5e"/></linearGradient></defs><g class="icon-float"><circle cx="60" cy="60" r="30" fill="none" stroke="url(#g7)" stroke-width="2"/><path d="M60 60l16-10" stroke="url(#g7)" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="60" r="4" fill="url(#g7)"/><circle cx="60" cy="34" r="2.5" fill="url(#g7)"/><circle cx="86" cy="60" r="2.5" fill="url(#g7)"/><circle cx="60" cy="86" r="2.5" fill="url(#g7)"/><circle cx="34" cy="60" r="2.5" fill="url(#g7)"/></g>'
+    },
+    {
+      num:"08", cat:"Analytics", title:"Insight Hub", subtitle:"Predictive Analytics",
+      desc:"Surfaces actionable insights from live telemetry, forecasting trends before they become incidents.",
+      tags:["Forecasting","Real-time","Explainable"], metricV:"+38%", metricL:"Efficiency",
+      colorA:"#ffc36b", colorB:"#fb923c",
+      icon:'<defs><linearGradient id="g8" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ffc36b"/><stop offset="100%" stop-color="#fb923c"/></linearGradient></defs><g class="icon-float"><path d="M28 84V52M48 84V36M68 84V58M88 84V28" stroke="url(#g8)" stroke-width="6" stroke-linecap="round"/><path d="M26 50l20-16 20 22 22-30" fill="none" stroke="url(#g8)" stroke-width="2" opacity="0.6"/></g>'
+    }
+  ];
+
+  var track = document.getElementById('track');
+  var dotsWrap = document.getElementById('dots');
+  var progressBar = document.getElementById('progressBar');
+  var stage = document.getElementById('stage');
+
+  var current = 0;
+  var total = CARDS.length;
+  var autoplayDelay = 5000;
+  var autoplayTimer = null;
+  var progressRAF = null;
+  var isPaused = false;
+
+  function buildCards(){
+    CARDS.forEach(function(c, i){
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.setAttribute('data-index', i);
+      card.style.setProperty('--glow-a', c.colorA);
+      card.style.setProperty('--glow-b', c.colorB);
+      card.style.setProperty('--glow-color', c.colorA + '59');
+      card.innerHTML =
+        '<div class="card-inner">' +
+          '<div class="card-grid-pattern"></div>' +
+          '<div class="card-glow-edge"></div>' +
+          '<div class="card-top">' +
+            '<span class="card-num">' + c.num + ' / 08</span>' +
+            '<span class="card-cat">' + c.cat + '</span>' +
+          '</div>' +
+          '<div class="card-art"><svg viewBox="0 0 120 120">' + c.icon + '</svg></div>' +
+          '<div class="card-body">' +
+            '<h3 class="card-title">' + c.title + '</h3>' +
+            '<p class="card-subtitle">' + c.subtitle + '</p>' +
+            '<p class="card-desc">' + c.desc + '</p>' +
+            '<div class="card-tags">' + c.tags.map(function(t){return '<span>'+t+'</span>';}).join('') + '</div>' +
+          '</div>' +
+          '<div class="card-footer">' +
+            '<div class="card-metric"><span class="v">' + c.metricV + '</span><span class="l">' + c.metricL + '</span></div>' +
+            '<div class="card-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>' +
+          '</div>' +
+          '<div class="card-sheen"></div>' +
+        '</div>';
+      track.appendChild(card);
+
+      card.addEventListener('click', function(){
+        var pos = parseInt(card.getAttribute('data-pos-num'), 10);
+        if (pos === 0) return;
+        goTo(i);
+      });
+
+      card.addEventListener('pointermove', function(e){
+        if (card.getAttribute('data-pos') !== '0') return;
+        var rect = card.getBoundingClientRect();
+        var x = (e.clientX - rect.left) / rect.width;
+        var y = (e.clientY - rect.top) / rect.height;
+        var rx = (0.5 - y) * 14;
+        var ry = (x - 0.5) * 16;
+        card.style.transform = 'translateX(0) translateZ(40px) rotateX(' + rx + 'deg) rotateY(' + ry + 'deg) scale(1.04)';
+        card.querySelector('.card-inner').style.setProperty('--mx', (x*100) + '%');
+        card.querySelector('.card-inner').style.setProperty('--my', (y*100) + '%');
+      });
+      card.addEventListener('pointerleave', function(){
+        if (card.getAttribute('data-pos') !== '0') return;
+        card.style.transform = '';
+      });
+    });
+  }
+
+  function buildDots(){
+    CARDS.forEach(function(_, i){
+      var dot = document.createElement('button');
+      dot.className = 'dot';
+      dot.setAttribute('role','tab');
+      dot.setAttribute('aria-label', 'Go to card ' + (i+1));
+      dot.addEventListener('click', function(){ goTo(i); restartAutoplay(); });
+      dotsWrap.appendChild(dot);
+    });
+  }
+
+  function render(){
+    var cards = track.querySelectorAll('.card');
+    cards.forEach(function(card, i){
+      var rel = i - current;
+      if (rel > total/2) rel -= total;
+      if (rel < -total/2) rel += total;
+      var posKey = (Math.abs(rel) > 2) ? 'hidden' : String(rel);
+      card.setAttribute('data-pos', posKey);
+      card.setAttribute('data-pos-num', rel);
+      card.style.transform = '';
+      card.setAttribute('aria-hidden', rel === 0 ? 'false' : 'true');
+    });
+    var dots = dotsWrap.querySelectorAll('.dot');
+    dots.forEach(function(d, i){
+      d.classList.toggle('active', i === current);
+      d.setAttribute('aria-selected', i === current ? 'true' : 'false');
+    });
+  }
+
+  function goTo(index){
+    current = ((index % total) + total) % total;
+    render();
+  }
+  function next(){ goTo(current + 1); }
+  function prev(){ goTo(current - 1); }
+
+  function startProgress(){
+    progressBar.classList.remove('animate');
+    progressBar.style.width = '0%';
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        progressBar.classList.add('animate');
+        progressBar.style.width = '100%';
+      });
+    });
+  }
+
+  function restartAutoplay(){
+    clearTimeout(autoplayTimer);
+    if (isPaused) return;
+    startProgress();
+    autoplayTimer = setTimeout(function(){
+      next();
+      restartAutoplay();
+    }, autoplayDelay);
+  }
+
+  function pauseAutoplay(){
+    isPaused = true;
+    clearTimeout(autoplayTimer);
+    progressBar.classList.remove('animate');
+  }
+  function resumeAutoplay(){
+    isPaused = false;
+    restartAutoplay();
+  }
+
+  document.getElementById('prevBtn').addEventListener('click', function(){ prev(); restartAutoplay(); });
+  document.getElementById('nextBtn').addEventListener('click', function(){ next(); restartAutoplay(); });
+
+  stage.addEventListener('mouseenter', pauseAutoplay);
+  stage.addEventListener('mouseleave', resumeAutoplay);
+
+  stage.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowLeft'){ prev(); restartAutoplay(); }
+    else if (e.key === 'ArrowRight'){ next(); restartAutoplay(); }
+  });
+
+  var touchStartX = null;
+  stage.addEventListener('touchstart', function(e){
+    touchStartX = e.touches[0].clientX;
+    pauseAutoplay();
+  }, {passive:true});
+  stage.addEventListener('touchend', function(e){
+    if (touchStartX === null) return;
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(dx) > 40){
+      if (dx < 0) next(); else prev();
+    }
+    touchStartX = null;
+    resumeAutoplay();
+  }, {passive:true});
+
+  function spawnParticles(){
+    var container = document.getElementById('particles');
+    var count = window.innerWidth < 600 ? 14 : 26;
+    for (var i = 0; i < count; i++){
+      var p = document.createElement('div');
+      p.className = 'particle';
+      var left = Math.random() * 100;
+      var delay = Math.random() * 18;
+      var duration = 14 + Math.random() * 14;
+      p.style.left = left + '%';
+      p.style.bottom = '-10px';
+      p.style.animationDuration = duration + 's';
+      p.style.animationDelay = '-' + delay + 's';
+      container.appendChild(p);
+    }
+  }
+
+  buildCards();
+  buildDots();
+  render();
+  spawnParticles();
+  restartAutoplay();
+})();
+</script>
+</body>
+</html>
